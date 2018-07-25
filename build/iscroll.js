@@ -1,4 +1,4 @@
-/*! iScroll v5.2.0-snapshot ~ (c) 2008-2017 Matteo Spinelli ~ http://cubiq.org/license */
+/*! iScroll v5.2.1 ~ (c) 2008-2018 Matteo Spinelli ~ http://cubiq.org/license */
 (function (window, document, Math) {
 var rAF = window.requestAnimationFrame	||
 	window.webkitRequestAnimationFrame	||
@@ -39,12 +39,29 @@ var utils = (function () {
 		}
 	};
 
-	me.addEvent = function (el, type, fn, capture) {
-		el.addEventListener(type, fn, !!capture);
+	// passive event listener 지원 여부 polyfill
+	// https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+	me.supportsPassive = (function() {
+		var supportsPassive = false;
+		var opts;
+		try {
+			opts = Object.defineProperty({}, "passive", {
+				get: function() {
+					supportsPassive = true;
+				}
+			});
+			window.addEventListener("testPassive", null, opts);
+			window.removeEventListener("testPassive", null, opts);
+		} catch (e) {}
+		return supportsPassive;
+	})();
+
+	me.addEvent = function (el, type, fn, opt) {
+		el.addEventListener(type, fn, (me.supportsPassive && opt && typeof opt === "object") ? opt : !!opt);
 	};
 
-	me.removeEvent = function (el, type, fn, capture) {
-		el.removeEventListener(type, fn, !!capture);
+	me.removeEvent = function (el, type, fn, opt) {
+		el.removeEventListener(type, fn, (me.supportsPassive && opt && typeof opt === "object") ? opt : !!opt);
 	};
 
 	me.prefixPointerEvent = function (pointerEvent) {
@@ -314,6 +331,7 @@ var utils = (function () {
 
 	return me;
 })();
+
 function IScroll (el, options) {
 	this.wrapper = typeof el == 'string' ? document.querySelector(el) : el;
 	this.scroller = this.wrapper.children[0];
@@ -411,7 +429,7 @@ function IScroll (el, options) {
 }
 
 IScroll.prototype = {
-	version: '5.2.0-snapshot',
+	version: '5.2.1',
 
 	_init: function () {
 		this._initEvents();
@@ -1006,7 +1024,7 @@ IScroll.prototype = {
 
 		if ( utils.hasTouch && !this.options.disableTouch ) {
 			eventType(this.wrapper, 'touchstart', this);
-			eventType(target, 'touchmove', this);
+			eventType(target, 'touchmove', this, {passive: false});
 			eventType(target, 'touchcancel', this);
 			eventType(target, 'touchend', this);
 		}
@@ -1032,6 +1050,7 @@ IScroll.prototype = {
 
 		return { x: x, y: y };
 	},
+
 	_initIndicators: function () {
 		var interactive = this.options.interactiveScrollbars,
 			customStyle = typeof this.options.scrollbars != 'string',
