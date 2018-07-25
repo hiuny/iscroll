@@ -37,12 +37,29 @@ var utils = (function () {
 		}
 	};
 
-	me.addEvent = function (el, type, fn, capture) {
-		el.addEventListener(type, fn, !!capture);
+	// passive event listener 지원 여부 polyfill
+	// https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+	me.supportsPassive = (function() {
+		var supportsPassive = false;
+		var opts;
+		try {
+			opts = Object.defineProperty({}, "passive", {
+				get: function() {
+					supportsPassive = true;
+				}
+			});
+			window.addEventListener("testPassive", null, opts);
+			window.removeEventListener("testPassive", null, opts);
+		} catch (e) {}
+		return supportsPassive;
+	})();
+
+	me.addEvent = function (el, type, fn, opt) {
+		el.addEventListener(type, fn, (me.supportsPassive && opt && typeof opt === "object") ? opt : !!opt);
 	};
 
-	me.removeEvent = function (el, type, fn, capture) {
-		el.removeEventListener(type, fn, !!capture);
+	me.removeEvent = function (el, type, fn, opt) {
+		el.removeEventListener(type, fn, (me.supportsPassive && opt && typeof opt === "object") ? opt : !!opt);
 	};
 
 	me.prefixPointerEvent = function (pointerEvent) {

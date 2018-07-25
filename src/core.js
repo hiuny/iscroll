@@ -622,7 +622,7 @@ IScroll.prototype = {
 
 		if ( utils.hasTouch && !this.options.disableTouch ) {
 			eventType(this.wrapper, 'touchstart', this);
-			eventType(target, 'touchmove', this);
+			eventType(target, 'touchmove', this, {passive: false});
 			eventType(target, 'touchcancel', this);
 			eventType(target, 'touchend', this);
 		}
